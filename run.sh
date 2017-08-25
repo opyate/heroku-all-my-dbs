@@ -22,8 +22,14 @@ for APP in $(cat $APPS_LIST); do
 	else
 		TABLEFILE=$BASE/${APP}.tables
 		if [ ! -f $TABLEFILE ]; then
-			heroku pg:psql -a $APP -c "\dt" > $TABLEFILE
+			heroku pg:psql -a $APP -c "\dt" > $TABLEFILE 2>&1
+			if grep -q "Unknown database" $TABLEFILE; then
+				STR=$(head -n1 $TABLEFILE)
+				DBNAME=${STR##* }
+				heroku pg:psql -a $APP -c "\dt" $DBNAME > $TABLEFILE 2>&1
+			fi
 		fi
+
 		if grep -q "No relations found." $TABLEFILE; then
 			echo "👎  No relations for $APP"
 		else
